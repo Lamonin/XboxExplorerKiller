@@ -1,0 +1,22 @@
+﻿<Window x:Class="XboxExplorerKiller.ConfirmDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:XboxExplorerKiller"
+        mc:Ignorable="d"
+        Title="ConfirmDialog" Height="220" Width="280" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <Grid Margin="16,16,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="24px"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="ConfirmDialogMessage" TextWrapping="Wrap" Text="Default Confirm Message" Grid.ColumnSpan="2" Margin="0,0,0,8"/>
+        <Button Content="Yes" Grid.Row="1" Margin="0,0,4,0" IsDefault="true" Click="Yes_Button_Click"/>
+        <Button Grid.Column="1" Content="Cancel" Grid.Row="1" Margin="4,0,0,0" IsCancel="True"/>
+    </Grid>
+</Window>
