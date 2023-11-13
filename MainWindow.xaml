@@ -5,17 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XboxExplorerKiller"
         mc:Ignorable="d"
-        Title="Xbox Explorer Killer" Height="360" Width="320
+        Title="Xbox Explorer Killer" Height="380" Width="340
         " ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded" Icon="/icon.ico">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="24px"/>
             <RowDefinition Height="1.4*"/>
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <Grid Grid.Row="1" Margin="8,0,8,8">
+
+        <Grid Grid.Row="2" Margin="8,0,8,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
@@ -30,13 +32,18 @@
             </Grid.ColumnDefinitions>
             <Button Content="Stop" Grid.Row="1" VerticalAlignment="Center" Height="24" Click="Stop_Button_Click"/>
             <Button Grid.Column="2" Content="Start" Grid.Row="1" VerticalAlignment="Center" Height="24" Click="Start_Button_Click"/>
-            <Label x:Name="KillerStatusLabel" Content="Killer status: Stopped" HorizontalAlignment="Center" VerticalAlignment="Center" Width="296" Grid.ColumnSpan="3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            <Label x:Name="KillerStatusLabel" HorizontalAlignment="Center" VerticalAlignment="Center" Width="296" Grid.ColumnSpan="3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                <TextBlock>
+                    <Run Text="Killer status:"/>
+                    <Run Text="Stopped" Foreground="Red" FontWeight="Bold"/>
+                </TextBlock>
+            </Label>
             <Label x:Name="ExplorerStatusLabel" Content="Explorer status: Running" HorizontalAlignment="Center" Grid.Row="2" VerticalAlignment="Center" Width="296" Grid.ColumnSpan="3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
             <Button Content="Kill" Grid.Row="3" VerticalAlignment="Center" Height="24" Click="Kill_Button_Click"/>
             <Button Grid.Column="2" Content="Restart" Grid.Row="3" VerticalAlignment="Center" Height="24" Click="Restart_Button_Click"/>
-            <Label Content="made by Maro" Grid.Row="4" Width="196" FontSize="8" Grid.ColumnSpan="3" Height="28" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+            <Label Content="made by Maro" Grid.Row="4" Width="196" FontSize="8" Grid.ColumnSpan="3" Height="21" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="54,0,54,0"/>
         </Grid>
-        <Grid Margin="8,8,8,0">
+        <Grid Margin="8,8,8,0" Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="1*"/>
@@ -48,5 +55,6 @@
                 <Button x:Name="RemoveProcessButton" Content="Remove" Margin="0,8,0,0" Height="24" Click="Remove_Button_Click"/>
             </StackPanel>
         </Grid>
+        <Label x:Name="DateTimeLabel" Content="13.11.2023  Time: 10:26" Grid.Row="0" Margin="8,0,8,0"/>
     </Grid>
 </Window>

@@ -7,27 +7,39 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.IO;
+using System.Windows.Documents;
+using System.Windows.Media;
 
 namespace XboxExplorerKiller
 {
     public class SaveData
     {
-        public string[] Processes { get; set; }
+        public string[]? Processes { get; set; }
     }
 
     public partial class MainWindow : Window
     {
         const string saveFileName = "XboxExplorerKiller.json";
 
+        private Run? killerStatusRun;
+        private Run? explorerStatusRun;
+
         private bool isProcessSelected;
         private bool isExplorerKilled;
         private string killedProcessName;
+        private Timer timeTimer;
         private Timer killerTimer;
         HashSet<string> processNamesForKill;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            timeTimer = new Timer(10000);
+            timeTimer.Elapsed += TimeTimer_Elapsed;
+            timeTimer.Start();
+
+
             killerTimer = new Timer(1000);
             killerTimer.Elapsed += KillerTimer_Elapsed;
         }
@@ -36,7 +48,31 @@ namespace XboxExplorerKiller
         {
             EditProcessButton.IsEnabled = false;
             RemoveProcessButton.IsEnabled = false;
+
             LoadData();
+
+            DateTimeLabel.Content = DateTime.Now;
+
+            var tb = new TextBlock();
+            tb.Inlines.Add("Killer status: ");
+            killerStatusRun = new Run("Stopped") { Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
+            tb.Inlines.Add(killerStatusRun);
+            KillerStatusLabel.Content = tb;
+
+            tb = new TextBlock();
+            tb.Inlines.Add("Explorer status: ");
+            explorerStatusRun = new Run("Running") { Foreground = Brushes.Green, FontWeight = FontWeights.Bold };
+            tb.Inlines.Add(explorerStatusRun);
+            ExplorerStatusLabel.Content = tb;
+        }
+
+
+        private void TimeTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                DateTimeLabel.Content = DateTime.Now;
+            });
         }
 
         private void KillerTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -98,6 +134,8 @@ namespace XboxExplorerKiller
                 StartInfo = new ProcessStartInfo
                 {
                     WindowStyle = ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
                     FileName = "cmd.exe",
                     Arguments = "/C " + command
                 }
@@ -108,13 +146,21 @@ namespace XboxExplorerKiller
 
         private void KillExplorer()
         {
-            Dispatcher.Invoke(() => { ExplorerStatusLabel.Content = "Explorer status: Killed"; });
+            Dispatcher.Invoke(() =>
+            {
+                explorerStatusRun.Text = "Killed";
+                explorerStatusRun.Foreground = Brushes.Red;
+            });
             CallCmdCommand("taskkill /f /im explorer.exe");
         }
 
         private void RestartExplorer()
         {
-            Dispatcher.Invoke(() => { ExplorerStatusLabel.Content = "Explorer status: Running"; });
+            Dispatcher.Invoke(() =>
+            {
+                explorerStatusRun.Text = "Running";
+                explorerStatusRun.Foreground = Brushes.Green;
+            });
             CallCmdCommand("start %windir%\\explorer.exe");
         }
 
@@ -173,7 +219,8 @@ namespace XboxExplorerKiller
             EditProcessButton.IsEnabled = isProcessSelected;
             RemoveProcessButton.IsEnabled = isProcessSelected;
 
-            KillerStatusLabel.Content = "Killer status: Stopped";
+            killerStatusRun.Text = "Stopped";
+            killerStatusRun.Foreground = Brushes.Red;
             killerTimer.Stop();
         }
 
@@ -185,18 +232,21 @@ namespace XboxExplorerKiller
             RemoveProcessButton.IsEnabled = false;
 
             processNamesForKill = new HashSet<string>(ProcessListBox.Items.Cast<string>().ToList());
-            KillerStatusLabel.Content = "Killer status: Working";
+            killerStatusRun.Text = "Working";
+            killerStatusRun.Foreground = Brushes.Green;
             killerTimer.Start();
         }
 
         private void Kill_Button_Click(object sender, RoutedEventArgs e)
         {
             KillExplorer();
+            this.Focus();
         }
 
         private void Restart_Button_Click(object sender, RoutedEventArgs e)
         {
             RestartExplorer();
+            this.Focus();
         }
     }
 }
