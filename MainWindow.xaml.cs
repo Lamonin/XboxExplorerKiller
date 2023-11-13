@@ -42,6 +42,8 @@ namespace XboxExplorerKiller
 
             killerTimer = new Timer(1000);
             killerTimer.Elapsed += KillerTimer_Elapsed;
+
+            Closing += MainWindow_Closing;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -51,6 +53,7 @@ namespace XboxExplorerKiller
 
             LoadData();
 
+            killedProcessName = "";
             DateTimeLabel.Content = DateTime.Now;
 
             var tb = new TextBlock();
@@ -67,6 +70,24 @@ namespace XboxExplorerKiller
         }
 
 
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            killerTimer.Stop();
+
+            if (isExplorerKilled)
+            {
+                const string message_title = "Restart explorer.exe process?";
+                const string message_body = "If you do not restart the Explorer process now, " +
+                    "then you will have to do it through the Task Manager, or in some other way. " +
+                    "Do you want to restart the Explorer process?";
+                
+                if (ConfirmDialog.Open(this, message_title, message_body, "Yes", "No") == true)
+                {
+                    RestartExplorer();
+                }
+            }
+        }
+
         private void TimeTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             Dispatcher.Invoke(() =>
@@ -77,12 +98,12 @@ namespace XboxExplorerKiller
 
         private void KillerTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (isExplorerKilled)
+            if (killedProcessName != "")
             {
                 if (Process.GetProcessesByName(killedProcessName).Length == 0)
                 {
                     RestartExplorer();
-                    isExplorerKilled = false;
+                    killedProcessName = "";
                 }
             }
             else
@@ -94,7 +115,6 @@ namespace XboxExplorerKiller
                     if (processNamesForKill.Contains(process.ProcessName))
                     {
                         KillExplorer();
-                        isExplorerKilled = true;
                         killedProcessName = process.ProcessName;
                         break;
                     }
@@ -152,6 +172,7 @@ namespace XboxExplorerKiller
                 explorerStatusRun.Foreground = Brushes.Red;
             });
             CallCmdCommand("taskkill /f /im explorer.exe");
+            isExplorerKilled = true;
         }
 
         private void RestartExplorer()
@@ -162,6 +183,7 @@ namespace XboxExplorerKiller
                 explorerStatusRun.Foreground = Brushes.Green;
             });
             CallCmdCommand("start %windir%\\explorer.exe");
+            isExplorerKilled = false;
         }
 
         private string GetListBoxSelectedValue(ListBox listBox)
@@ -240,13 +262,13 @@ namespace XboxExplorerKiller
         private void Kill_Button_Click(object sender, RoutedEventArgs e)
         {
             KillExplorer();
-            this.Focus();
+            Focus();
         }
 
         private void Restart_Button_Click(object sender, RoutedEventArgs e)
         {
             RestartExplorer();
-            this.Focus();
+            Focus();
         }
     }
 }
