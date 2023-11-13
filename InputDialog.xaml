@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XboxExplorerKiller"
         mc:Ignorable="d"
-        Title="InputDialog" Height="220" Width="280" WindowStartupLocation="CenterOwner">
-    <Grid Margin="16,16,16,16">
+        Title="InputDialog" Height="Auto" Width="240" WindowStartupLocation="CenterOwner" SizeToContent="Height" ResizeMode="NoResize">
+    <Grid Margin="8,8,8,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="28px"/>

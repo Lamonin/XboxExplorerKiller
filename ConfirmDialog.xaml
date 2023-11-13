@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XboxExplorerKiller"
         mc:Ignorable="d"
-        Title="ConfirmDialog" Height="220" Width="280" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
-    <Grid Margin="16,16,16,16">
+        Title="ConfirmDialog" Height="Auto" Width="240" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <Grid Margin="8,8,8,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="24px"/>
@@ -15,8 +15,8 @@
             <ColumnDefinition/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock x:Name="ConfirmDialogMessage" TextWrapping="Wrap" Text="Default Confirm Message" Grid.ColumnSpan="2" Margin="0,0,0,8"/>
-        <Button Content="Yes" Grid.Row="1" Margin="0,0,4,0" IsDefault="true" Click="Yes_Button_Click"/>
-        <Button Grid.Column="1" Content="Cancel" Grid.Row="1" Margin="4,0,0,0" IsCancel="True"/>
+        <TextBlock x:Name="ConfirmDialogMessage" TextWrapping="Wrap" Text="Default Confirm Message" Grid.ColumnSpan="2" Margin="0,0,0,24"/>
+        <Button x:Name="ConfirmButton" Content="Yes" Grid.Row="1" Margin="0,0,4,0" IsDefault="true" Click="Yes_Button_Click"/>
+        <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel" Grid.Row="1" Margin="4,0,0,0" IsCancel="True"/>
     </Grid>
 </Window>
