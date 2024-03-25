@@ -45,7 +45,7 @@
         </Grid>
         <Grid Margin="8,8,8,0" Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <ListBox x:Name="ProcessListBox" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="ProcessListBox_SelectionChanged"/>
@@ -53,6 +53,8 @@
                 <Button x:Name="AddProcessButton" Content="Add" Height="24" Click="Add_Button_Click"/>
                 <Button x:Name="EditProcessButton" Content="Edit" Margin="0,8,0,0" Height="24" Click="Edit_Button_Click"/>
                 <Button x:Name="RemoveProcessButton" Content="Remove" Margin="0,8,0,0" Height="24" Click="Remove_Button_Click"/>
+                <Label x:Name="DelayLabel" Content="Delay (sec.)" Margin="-5,4,0,-2" ToolTip="If the process is found, explorer will be closed not immediately, but after the specified delay in seconds"/>
+                <TextBox x:Name="ProcessDelayTextBox" Text="{Binding ElementName=ProcessListBox, Path=SelectedItem.Delay}"/>
             </StackPanel>
         </Grid>
         <Label x:Name="DateTimeLabel" Content="13.11.2023  Time: 10:26" Grid.Row="0" Margin="8,0,8,0"/>

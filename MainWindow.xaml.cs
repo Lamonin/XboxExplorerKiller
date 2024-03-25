@@ -9,36 +9,54 @@ using System.Text.Json;
 using System.IO;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Threading.Tasks;
+using System.Threading;
+
+using Timer = System.Timers.Timer;
+using System.Collections.ObjectModel;
 
 namespace XboxExplorerKiller
 {
-    public class SaveData
+    public class ProcessData
     {
-        public string[]? Processes { get; set; }
+        public ObservableCollection<ProcessInfo> Processes { get; set; } = new ObservableCollection<ProcessInfo>();
+    }
+
+    public class ProcessInfo
+    {
+        public string Name { get; set; }
+        public int Delay { get; set; }
     }
 
     public partial class MainWindow : Window
     {
-        const string saveFileName = "XboxExplorerKiller.json";
+        const string saveFileName = "XboxExplorerKillerData.json";
 
         private Run? killerStatusRun;
         private Run? explorerStatusRun;
+        private CancellationTokenSource cancelationTokenSource;
 
+        private bool isProcessKilled;
         private bool isProcessSelected;
         private bool isExplorerKilled;
-        private string killedProcessName;
-        private Timer timeTimer;
-        private Timer killerTimer;
-        HashSet<string> processNamesForKill;
+        private readonly Timer timeTimer;
+        private readonly Timer killerTimer;
+        private HashSet<string> processNamesForKill;
+
+        private ProcessData processData;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            timeTimer = new Timer(10000);
-            timeTimer.Elapsed += TimeTimer_Elapsed;
-            timeTimer.Start();
+            processData = new ProcessData();
+            processNamesForKill = new HashSet<string>();
 
+            cancelationTokenSource = new CancellationTokenSource();
+
+            timeTimer = new Timer(1000);
+            timeTimer.Elapsed += DateTimeTimer_Elapsed;
+            timeTimer.Start();
 
             killerTimer = new Timer(1000);
             killerTimer.Elapsed += KillerTimer_Elapsed;
@@ -48,23 +66,29 @@ namespace XboxExplorerKiller
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            EditProcessButton.IsEnabled = false;
-            RemoveProcessButton.IsEnabled = false;
-
             LoadData();
 
-            killedProcessName = "";
-            DateTimeLabel.Content = DateTime.Now;
+            ProcessListBox.ItemsSource = processData.Processes;
+            ProcessListBox.DisplayMemberPath = "Name";
 
+            EditProcessButton.IsEnabled = false;
+            RemoveProcessButton.IsEnabled = false;
+            DelayLabel.IsEnabled = false;
+            ProcessDelayTextBox.IsEnabled = false;
+
+            DateTimeLabel.Content = DateTime.Now.ToString("g");
+
+            killerStatusRun = new Run("Stopped") { Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
             var tb = new TextBlock();
             tb.Inlines.Add("Killer status: ");
-            killerStatusRun = new Run("Stopped") { Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
             tb.Inlines.Add(killerStatusRun);
             KillerStatusLabel.Content = tb;
 
+            explorerStatusRun = IsExplorerRunning()
+                ? new Run("Running") { Foreground = Brushes.Green, FontWeight = FontWeights.Bold }
+                : new Run("Killed") { Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
             tb = new TextBlock();
             tb.Inlines.Add("Explorer status: ");
-            explorerStatusRun = new Run("Running") { Foreground = Brushes.Green, FontWeight = FontWeights.Bold };
             tb.Inlines.Add(explorerStatusRun);
             ExplorerStatusLabel.Content = tb;
         }
@@ -74,60 +98,69 @@ namespace XboxExplorerKiller
         {
             killerTimer.Stop();
 
+            SaveData();
+
             if (isExplorerKilled)
             {
                 const string message_title = "Restart explorer.exe process?";
                 const string message_body = "If you do not restart the Explorer process now, " +
                     "then you will have to do it through the Task Manager, or in some other way. " +
                     "Do you want to restart the Explorer process?";
-                
+
                 if (ConfirmDialog.Open(this, message_title, message_body, "Yes", "No") == true)
                 {
                     RestartExplorer();
                 }
+
+                cancelationTokenSource.Cancel(true);
             }
         }
 
-        private void TimeTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        private void DateTimeTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
-                DateTimeLabel.Content = DateTime.Now;
+                DateTimeLabel.Content = DateTime.Now.ToString("g");
             });
         }
 
-        private void KillerTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void KillerTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            if (killedProcessName != "")
+            if (!isProcessKilled)
             {
-                if (Process.GetProcessesByName(killedProcessName).Length == 0)
+                if (IsAnyProcessRunning(out var process))
                 {
-                    RestartExplorer();
-                    killedProcessName = "";
+                    isProcessKilled = true;
+                    var findedProcess = processData.Processes.First(p => p.Name == process.ProcessName);
+                    KillExplorerAndWaitUntilProcessExit(process, findedProcess.Delay);
                 }
             }
-            else
-            {
-                Process[] processlist = Process.GetProcesses();
+        }
 
-                foreach (var process in processlist)
-                {
-                    if (processNamesForKill.Contains(process.ProcessName))
-                    {
-                        KillExplorer();
-                        killedProcessName = process.ProcessName;
-                        break;
-                    }
-                }
+        private async void KillExplorerAndWaitUntilProcessExit(Process process, int delay)
+        {
+            cancelationTokenSource = new CancellationTokenSource();
+            try
+            {
+                await Task.Delay(delay * 1000, cancelationTokenSource.Token);
+                KillExplorer();
+                await process.WaitForExitAsync(cancelationTokenSource.Token);
+                RestartExplorer();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                isProcessKilled = false;
             }
         }
 
         private void SaveData()
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, saveFileName);
-            var save = new SaveData() { Processes = ProcessListBox.Items.Cast<string>().ToArray() };
             var options = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(path, JsonSerializer.Serialize(save, options));
+            File.WriteAllText(path, JsonSerializer.Serialize(processData, options));
         }
 
         private void LoadData()
@@ -139,15 +172,13 @@ namespace XboxExplorerKiller
                 return;
             }
 
-            var jsonString = File.ReadAllText(saveFileName);
-            SaveData savedData = JsonSerializer.Deserialize<SaveData>(jsonString);
-            foreach (var process in savedData.Processes)
-            {
-                ProcessListBox.Items.Add(process);
-            }
+            var savedData = JsonSerializer.Deserialize<ProcessData>(File.ReadAllText(saveFileName));
+            if (savedData == null || savedData.Processes == null) return;
+
+            processData = savedData;
         }
 
-        private void CallCmdCommand(string command)
+        private static void CallCmdCommand(string command)
         {
             Process process = new Process
             {
@@ -164,64 +195,80 @@ namespace XboxExplorerKiller
             process.WaitForExit();
         }
 
+        private bool IsAnyProcessRunning(out Process runnedProcess)
+        {
+            Process[] processList = Process.GetProcesses();
+
+            foreach (var process in processList)
+            {
+                if (processNamesForKill.Contains(process.ProcessName))
+                {
+                    runnedProcess = process;
+                    return true;
+                }
+            }
+            runnedProcess = null;
+            return false;
+        }
+
+        private bool IsExplorerRunning()
+        {
+            Process[] processlist = Process.GetProcesses();
+            foreach (var process in processlist)
+            {
+                if (process.ProcessName == "explorer")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void KillExplorer()
         {
+            CallCmdCommand("taskkill /f /im explorer.exe");
             Dispatcher.Invoke(() =>
             {
                 explorerStatusRun.Text = "Killed";
                 explorerStatusRun.Foreground = Brushes.Red;
             });
-            CallCmdCommand("taskkill /f /im explorer.exe");
             isExplorerKilled = true;
         }
 
         private void RestartExplorer()
         {
+            CallCmdCommand("start %windir%\\explorer.exe");
             Dispatcher.Invoke(() =>
             {
                 explorerStatusRun.Text = "Running";
                 explorerStatusRun.Foreground = Brushes.Green;
             });
-            CallCmdCommand("start %windir%\\explorer.exe");
             isExplorerKilled = false;
         }
-
-        private string GetListBoxSelectedValue(ListBox listBox)
-        {
-            int idx = listBox.SelectedIndex;
-            return idx != -1 ? listBox.Items[listBox.SelectedIndex].ToString() : "";
-        }
-
-        private void ReplaceListBoxSelectedValue(ListBox listBox, string newValue)
-        {
-            int idx = listBox.SelectedIndex;
-            listBox.Items.RemoveAt(idx);
-            listBox.Items.Insert(idx, newValue);
-        }
-
 
         private void ProcessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             isProcessSelected = ProcessListBox.SelectedIndex != -1;
             EditProcessButton.IsEnabled = isProcessSelected;
             RemoveProcessButton.IsEnabled = isProcessSelected;
+            DelayLabel.IsEnabled = isProcessSelected;
+            ProcessDelayTextBox.IsEnabled = isProcessSelected;
         }
 
         private void Add_Button_Click(object sender, RoutedEventArgs e)
         {
             if (InputDialog.Open(this, "Add process", "Enter process name:", "Example Process Name") == true)
             {
-                ProcessListBox.Items.Add(InputDialog.UserInput);
-                SaveData();
+                processData.Processes.Add(new ProcessInfo { Name = InputDialog.UserInput, Delay = 0 });
             }
         }
 
         private void Edit_Button_Click(object sender, RoutedEventArgs e)
         {
-            if (InputDialog.Open(this, "Edit process name", "Enter new process name:", GetListBoxSelectedValue(ProcessListBox)) == true)
+            if (InputDialog.Open(this, "Edit process name", "Enter new process name:", ((ProcessInfo) ProcessListBox.SelectedValue).Name) == true)
             {
-                ReplaceListBoxSelectedValue(ProcessListBox, InputDialog.UserInput);
-                SaveData();
+                var p = processData.Processes[ProcessListBox.SelectedIndex];
+                processData.Processes[ProcessListBox.SelectedIndex] = new ProcessInfo { Name = InputDialog.UserInput, Delay = p.Delay };
             }
         }
 
@@ -229,8 +276,7 @@ namespace XboxExplorerKiller
         {
             if (ConfirmDialog.Open(this, "Remove process from list", "Are you sure?") == true)
             {
-                ProcessListBox.Items.RemoveAt(ProcessListBox.SelectedIndex);
-                SaveData();
+                processData.Processes.RemoveAt(ProcessListBox.SelectedIndex);
             }
         }
 
@@ -240,10 +286,14 @@ namespace XboxExplorerKiller
             AddProcessButton.IsEnabled = true;
             EditProcessButton.IsEnabled = isProcessSelected;
             RemoveProcessButton.IsEnabled = isProcessSelected;
+            DelayLabel.IsEnabled = isProcessSelected;
+            ProcessDelayTextBox.IsEnabled = isProcessSelected;
 
             killerStatusRun.Text = "Stopped";
             killerStatusRun.Foreground = Brushes.Red;
             killerTimer.Stop();
+
+            cancelationTokenSource.Cancel(true);
         }
 
         private void Start_Button_Click(object sender, RoutedEventArgs e)
@@ -252,8 +302,10 @@ namespace XboxExplorerKiller
             AddProcessButton.IsEnabled = false;
             EditProcessButton.IsEnabled = false;
             RemoveProcessButton.IsEnabled = false;
+            DelayLabel.IsEnabled = false;
+            ProcessDelayTextBox.IsEnabled = false;
 
-            processNamesForKill = new HashSet<string>(ProcessListBox.Items.Cast<string>().ToList());
+            processNamesForKill = processData.Processes.Select(p => p.Name).ToHashSet();
             killerStatusRun.Text = "Working";
             killerStatusRun.Foreground = Brushes.Green;
             killerTimer.Start();
@@ -267,6 +319,7 @@ namespace XboxExplorerKiller
 
         private void Restart_Button_Click(object sender, RoutedEventArgs e)
         {
+            cancelationTokenSource.Cancel(true);
             RestartExplorer();
             Focus();
         }
