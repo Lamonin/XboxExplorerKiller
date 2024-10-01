@@ -1,9 +1,17 @@
-﻿<Application x:Class="XboxExplorerKiller.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:XboxExplorerKiller"
-             StartupUri="MainWindow.xaml">
+﻿<Application
+    x:Class="XboxExplorerKiller.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:XboxExplorerKiller.Converters"
+    xmlns:local="clr-namespace:XboxExplorerKiller"
+    StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+            <converters:HasSelectedItemConverter x:Key="HasSelectedItemConverter" />
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/XboxExplorerKiller;Component/XEKResourceDictionary.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

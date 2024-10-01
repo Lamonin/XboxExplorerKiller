@@ -1,25 +1,28 @@
-﻿using System;
-using System.Windows;
-using System.Diagnostics;
-using System.Windows.Controls;
-using System.Timers;
+﻿using Hardcodet.Wpf.TaskbarNotification;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using System.Threading.Tasks;
-using System.Threading;
-
 using Timer = System.Timers.Timer;
-using System.Collections.ObjectModel;
 
 namespace XboxExplorerKiller
 {
-    public class ProcessData
+    public class XEKData
     {
-        public ObservableCollection<ProcessInfo> Processes { get; set; } = new ObservableCollection<ProcessInfo>();
+        public bool MinimizeToTray { get; set; } = true;
+        public ObservableCollection<ProcessInfo> Processes { get; set; } =
+            new ObservableCollection<ProcessInfo>();
     }
 
     public class ProcessInfo
@@ -28,10 +31,11 @@ namespace XboxExplorerKiller
         public int Delay { get; set; }
     }
 
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         const string saveFileName = "XboxExplorerKillerData.json";
 
+        private TaskbarIcon tb;
         private Run? killerStatusRun;
         private Run? explorerStatusRun;
         private CancellationTokenSource cancelationTokenSource;
@@ -43,13 +47,32 @@ namespace XboxExplorerKiller
         private readonly Timer killerTimer;
         private HashSet<string> processNamesForKill;
 
-        private ProcessData processData;
+        private XEKData processData;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void RaisePropertyChanged(string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private bool _killerStatus = false;
+        public bool KillerStatus
+        {
+            get => _killerStatus;
+            private set
+            {
+                _killerStatus = value;
+                RaisePropertyChanged(nameof(KillerStatus));
+                if (_killerStatus) { }
+                else { }
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
 
-            processData = new ProcessData();
+            processData = new XEKData();
             processNamesForKill = new HashSet<string>();
 
             cancelationTokenSource = new CancellationTokenSource();
@@ -62,6 +85,38 @@ namespace XboxExplorerKiller
             killerTimer.Elapsed += KillerTimer_Elapsed;
 
             Closing += MainWindow_Closing;
+            InitializeTaskbarIcon();
+        }
+
+        private void InitializeTaskbarIcon()
+        {
+            tb = (TaskbarIcon)FindResource("XEKNotifyIcon");
+            tb.Visibility = Visibility.Visible;
+            tb.TrayMouseDoubleClick += Tb_TrayMouseDoubleClick;
+
+            MenuItem menuItem;
+
+            menuItem = new MenuItem() { Header = "Open" };
+            menuItem.Click += (s, e) => ShowWindow();
+            tb.ContextMenu.Items.Add(menuItem);
+
+            menuItem = new MenuItem() { Header = "Exit" };
+            menuItem.Click += (s, e) => Close();
+            tb.ContextMenu.Items.Add(menuItem);
+
+            return;
+
+            void Tb_TrayMouseDoubleClick(object sender, RoutedEventArgs e)
+            {
+                ShowWindow();
+            }
+        }
+
+        private void ShowWindow()
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -78,8 +133,14 @@ namespace XboxExplorerKiller
 
             DateTimeLabel.Content = DateTime.Now.ToString("g");
 
-            killerStatusRun = new Run("Stopped") { Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
+            killerStatusRun = new Run("Stopped")
+            {
+                Foreground = Brushes.Red,
+                FontWeight = FontWeights.Bold
+            };
+
             var tb = new TextBlock();
+
             tb.Inlines.Add("Killer status: ");
             tb.Inlines.Add(killerStatusRun);
             KillerStatusLabel.Content = tb;
@@ -93,7 +154,6 @@ namespace XboxExplorerKiller
             ExplorerStatusLabel.Content = tb;
         }
 
-
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             killerTimer.Stop();
@@ -103,9 +163,10 @@ namespace XboxExplorerKiller
             if (isExplorerKilled)
             {
                 const string message_title = "Restart explorer.exe process?";
-                const string message_body = "If you do not restart the Explorer process now, " +
-                    "then you will have to do it through the Task Manager, or in some other way. " +
-                    "Do you want to restart the Explorer process?";
+                const string message_body =
+                    "If you do not restart the Explorer process now, "
+                    + "then you will have to do it through the Task Manager, or in some other way. "
+                    + "Do you want to restart the Explorer process?";
 
                 if (ConfirmDialog.Open(this, message_title, message_body, "Yes", "No") == true)
                 {
@@ -131,7 +192,9 @@ namespace XboxExplorerKiller
                 if (IsAnyProcessRunning(out var process))
                 {
                     isProcessKilled = true;
-                    var findedProcess = processData.Processes.First(p => p.Name == process.ProcessName);
+                    var findedProcess = processData.Processes.First(p =>
+                        p.Name == process.ProcessName
+                    );
                     KillExplorerAndWaitUntilProcessExit(process, findedProcess.Delay);
                 }
             }
@@ -147,9 +210,7 @@ namespace XboxExplorerKiller
                 await process.WaitForExitAsync(cancelationTokenSource.Token);
                 RestartExplorer();
             }
-            catch (OperationCanceledException)
-            {
-            }
+            catch (OperationCanceledException) { }
             finally
             {
                 isProcessKilled = false;
@@ -158,6 +219,7 @@ namespace XboxExplorerKiller
 
         private void SaveData()
         {
+            processData.MinimizeToTray = MinimizeToTrayCheckBox.IsChecked == true;
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, saveFileName);
             var options = new JsonSerializerOptions { WriteIndented = true };
             File.WriteAllText(path, JsonSerializer.Serialize(processData, options));
@@ -172,10 +234,12 @@ namespace XboxExplorerKiller
                 return;
             }
 
-            var savedData = JsonSerializer.Deserialize<ProcessData>(File.ReadAllText(saveFileName));
-            if (savedData == null || savedData.Processes == null) return;
+            var savedData = JsonSerializer.Deserialize<XEKData>(File.ReadAllText(saveFileName));
+            if (savedData == null || savedData.Processes == null)
+                return;
 
             processData = savedData;
+            MinimizeToTrayCheckBox.IsChecked = processData.MinimizeToTray;
         }
 
         private static void CallCmdCommand(string command)
@@ -257,18 +321,34 @@ namespace XboxExplorerKiller
 
         private void Add_Button_Click(object sender, RoutedEventArgs e)
         {
-            if (InputDialog.Open(this, "Add process", "Enter process name:", "Example Process Name") == true)
+            if (
+                InputDialog.Open(this, "Add process", "Enter process name:", "Example Process Name")
+                == true
+            )
             {
-                processData.Processes.Add(new ProcessInfo { Name = InputDialog.UserInput, Delay = 0 });
+                processData.Processes.Add(
+                    new ProcessInfo { Name = InputDialog.UserInput, Delay = 0 }
+                );
             }
         }
 
         private void Edit_Button_Click(object sender, RoutedEventArgs e)
         {
-            if (InputDialog.Open(this, "Edit process name", "Enter new process name:", ((ProcessInfo) ProcessListBox.SelectedValue).Name) == true)
+            if (
+                InputDialog.Open(
+                    this,
+                    "Edit process name",
+                    "Enter new process name:",
+                    ((ProcessInfo)ProcessListBox.SelectedValue).Name
+                ) == true
+            )
             {
                 var p = processData.Processes[ProcessListBox.SelectedIndex];
-                processData.Processes[ProcessListBox.SelectedIndex] = new ProcessInfo { Name = InputDialog.UserInput, Delay = p.Delay };
+                processData.Processes[ProcessListBox.SelectedIndex] = new ProcessInfo
+                {
+                    Name = InputDialog.UserInput,
+                    Delay = p.Delay
+                };
             }
         }
 
@@ -280,8 +360,27 @@ namespace XboxExplorerKiller
             }
         }
 
+        private void Start_Button_Click(object sender, RoutedEventArgs e)
+        {
+            KillerStatus = true;
+
+            ProcessListBox.IsEnabled = false;
+            AddProcessButton.IsEnabled = false;
+            EditProcessButton.IsEnabled = false;
+            RemoveProcessButton.IsEnabled = false;
+            DelayLabel.IsEnabled = false;
+            ProcessDelayTextBox.IsEnabled = false;
+
+            processNamesForKill = processData.Processes.Select(p => p.Name).ToHashSet();
+            killerStatusRun.Text = "Working";
+            killerStatusRun.Foreground = Brushes.Green;
+            killerTimer.Start();
+        }
+
         private void Stop_Button_Click(object sender, RoutedEventArgs e)
         {
+            KillerStatus = false;
+
             ProcessListBox.IsEnabled = true;
             AddProcessButton.IsEnabled = true;
             EditProcessButton.IsEnabled = isProcessSelected;
@@ -296,21 +395,6 @@ namespace XboxExplorerKiller
             cancelationTokenSource.Cancel(true);
         }
 
-        private void Start_Button_Click(object sender, RoutedEventArgs e)
-        {
-            ProcessListBox.IsEnabled = false;
-            AddProcessButton.IsEnabled = false;
-            EditProcessButton.IsEnabled = false;
-            RemoveProcessButton.IsEnabled = false;
-            DelayLabel.IsEnabled = false;
-            ProcessDelayTextBox.IsEnabled = false;
-
-            processNamesForKill = processData.Processes.Select(p => p.Name).ToHashSet();
-            killerStatusRun.Text = "Working";
-            killerStatusRun.Foreground = Brushes.Green;
-            killerTimer.Start();
-        }
-
         private void Kill_Button_Click(object sender, RoutedEventArgs e)
         {
             KillExplorer();
@@ -322,6 +406,17 @@ namespace XboxExplorerKiller
             cancelationTokenSource.Cancel(true);
             RestartExplorer();
             Focus();
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            switch (WindowState)
+            {
+                case WindowState.Minimized:
+                    if (MinimizeToTrayCheckBox.IsChecked == true)
+                        Hide();
+                    break;
+            }
         }
     }
 }

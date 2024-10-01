@@ -2,9 +2,6 @@
 
 namespace XboxExplorerKiller
 {
-    /// <summary>
-    /// Логика взаимодействия для InputDialog.xaml
-    /// </summary>
     public partial class InputDialog : Window
     {
         public InputDialog()
@@ -16,7 +13,7 @@ namespace XboxExplorerKiller
 
         public static bool? Open(Window owner, string title, string message, string defaultInput)
         {
-            InputDialog dialog = new InputDialog
+            var dialog = new InputDialog
             {
                 Owner = owner,
                 Title = title
@@ -24,6 +21,7 @@ namespace XboxExplorerKiller
             dialog.InputDialogMessage.Text = message;
             dialog.InputDialogUserInput.Text = defaultInput;
             dialog.InputDialogUserInput.Focus();
+            dialog.InputDialogUserInput.SelectAll();
             return dialog.ShowDialog();
         }
 

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <StartupObject>XboxExplorerKiller.App</StartupObject>
@@ -22,13 +22,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="icon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="icon.ico" />
+    <Resource Include="icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>
