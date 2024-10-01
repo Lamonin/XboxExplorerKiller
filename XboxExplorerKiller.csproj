@@ -31,4 +31,8 @@
     </Resource>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ReadmeImages\" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,7 @@
 # Xbox Explorer Killer
 
 <p align="center">
-  <img src="https://github.com/Lamonin/XboxExplorerKiller/assets/48371419/2ba3559a-8eb8-4a58-9ccb-87191656c624" alt="Xbox Explorer Killer Image"/>
+  <img src="ReadmeImages/main.png" alt="Xbox Explorer Killer - Main Window"/>
 </p>
 
 **Xbox Explorer Killer** - is a simple program that automatically kills the explorer process in Windows when you launch a game from Xbox Game Pass, and starts the explorer process over again when you close the game.
@@ -13,7 +13,7 @@ Just start the program, add the names of the processes you need (you can find th
 
 ![image](https://github.com/Lamonin/XboxExplorerKiller/assets/48371419/3a87aea8-bd97-4f61-bfc0-01d111bcc1a2)
 
-![image](https://github.com/Lamonin/XboxExplorerKiller/assets/48371419/252eeb44-646a-4c9c-851f-85fe28c8fb62)
+<img src="ReadmeImages/add_process.png" alt="Xbox Explorer Killer - Add Process Window"/>
 
 ***
 
@@ -25,5 +25,5 @@ Just start the program, add the names of the processes you need (you can find th
 
 ![image](https://github.com/Lamonin/XboxExplorerKiller/assets/48371419/3a87aea8-bd97-4f61-bfc0-01d111bcc1a2)
 
-![image](https://github.com/Lamonin/XboxExplorerKiller/assets/48371419/252eeb44-646a-4c9c-851f-85fe28c8fb62)
+<img src="ReadmeImages/add_process.png" alt="Xbox Explorer Killer - Add Process Window"/>
 
